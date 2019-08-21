@@ -1,0 +1,78 @@
+#!/bin/bash
+
+
+# shellcheck disable=SC1090
+. "$(ueberzug library)"
+
+
+# Let w3mimgdisplay handle things like `-test`.
+if [ $# -gt 0 ]; then
+	exec /usr/lib/w3m/w3mimgdisplay "$@"
+fi
+
+
+dbg() {
+	:
+}
+
+
+fifo=$UBERW3M_FIFO_PATH
+if [ -z "$fifo" ] || ! [ -p "$fifo" ]; then
+	printf 'You must use uberwrap in order to use uberw3m.\n' >&2
+	exit 1
+fi
+
+
+while IFS=';' read -r -d ';' cmd; do
+	dbg "got command: $cmd"
+	case $cmd in
+		0) # draw image
+			dbg "do: drawing image"
+			# shellcheck disable=SC2034
+			IFS=';' read -r n x y w h sx sy sw sh path
+			dbg "drawing image: $x $y $w $h $path"
+			# ueberzug uses characters, but w3mimgdisplay uses pixels, so we have to convert.
+			# TODO: don't hardcode the screen's pixel dimensions!
+			xpx=1920
+			ypx=1080
+			xn=$(tput cols)
+			yn=$(tput lines)
+			x=$(( x / (xpx/xn) ))
+			y=$(( y / (ypx/yn) ))
+			ImageLayer::add "[identifier]=$n" "[x]=$x" "[y]=$y" "[width]=$w" "[height]=$h" "[path]=$path" >"$fifo"
+			dbg "done: drawing image"
+			;;
+		1) # redraw image
+			# TODO: is this a no-op with ueberzug?
+			;;
+		2) # terminate drawing
+			# TODO
+			;;
+		3) # "sync drawing"
+			# TODO: what does this mean?
+			;;
+		4) # nop
+			dbg "do: nop"
+			printf '\n'
+			dbg "done: nop"
+			;;
+		5) # get size of image
+			dbg "do: image size"
+			read -r path
+			file "$path" | grep -oP '[0-9]+ x [0-9]+' | sed 's/ x / /'
+			dbg "path: $path"
+			dbg "image size: $(file "$path" | grep -oP '[0-9]+ x [0-9]+' | sed 's/ x / /')"
+			dbg "done: image size"
+			;;
+		6) # clear image
+			# TODO: make this actually remove the correct image, rather than just the last thing drawn
+			dbg "do: clearing image"
+			IFS=';' read -r x y w h
+			ImageLayer::remove "[identifier]=$n" >"$fifo"
+			dbg "done: clearing image"
+			;;
+		*) dbg "bad command: $cmd";;
+	esac
+	dbg "done loop"
+done
+dbg "exiting"

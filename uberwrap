@@ -1,0 +1,12 @@
+#!/bin/sh
+
+fifo="$(mktemp -u /tmp/uberw3m-XXXXXX)"
+# shellcheck disable=SC1090
+. "$(ueberzug library)"
+mkfifo "$fifo" || exit 1
+tail -f "$fifo" | ImageLayer &
+
+UBERW3M_FIFO_PATH="$fifo" "$@"
+
+kill %1
+rm "$fifo"

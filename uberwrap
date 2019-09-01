@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 fifo="$(mktemp -u /tmp/uberw3m-XXXXXX)"
 # shellcheck disable=SC1090

@@ -16,6 +16,22 @@ dbg() {
 }
 
 
+getx() {
+	# TODO: don't hardcode the screen's pixel dimensions!
+	xpx=1920
+	xn=$(tput cols)
+	printf '%s' "$(( $1 / (xpx/xn) ))"
+}
+
+
+gety() {
+	# TODO: don't hardcode the screen's pixel dimensions!
+	ypx=1080
+	yn=$(tput lines)
+	printf '%s' "$(( $1 / (ypx/yn) ))"
+}
+
+
 fifo=$UBERW3M_FIFO_PATH
 if [ -z "$fifo" ] || ! [ -p "$fifo" ]; then
 	printf 'You must use uberwrap in order to use uberw3m.\n' >&2
@@ -30,16 +46,13 @@ while IFS=';' read -r -d ';' cmd; do
 			dbg "do: drawing image"
 			# shellcheck disable=SC2034
 			IFS=';' read -r n x y w h sx sy sw sh path
-			dbg "drawing image: $x $y $w $h $path"
 			# ueberzug uses characters, but w3mimgdisplay uses pixels, so we have to convert.
-			# TODO: don't hardcode the screen's pixel dimensions!
-			xpx=1920
-			ypx=1080
-			xn=$(tput cols)
-			yn=$(tput lines)
-			x=$(( x / (xpx/xn) ))
-			y=$(( y / (ypx/yn) ))
-			ImageLayer::add "[identifier]=$n" "[x]=$x" "[y]=$y" "[width]=$w" "[height]=$h" "[path]=$path" >"$fifo"
+			x=$(getx "$x")
+			y=$(gety "$y")
+			# TODO: use $n as identifier?
+			imgid="img-$x-$y-$w-$h"
+			dbg "imgid: $imgid"
+			ImageLayer::add "[identifier]=$imgid" "[x]=$x" "[y]=$y" "[width]=$w" "[height]=$h" "[path]=$path" >"$fifo"
 			dbg "done: drawing image"
 			;;
 		1) # redraw image
@@ -65,10 +78,13 @@ while IFS=';' read -r -d ';' cmd; do
 			dbg "done: image size"
 			;;
 		6) # clear image
-			# TODO: make this actually remove the correct image, rather than just the last thing drawn
 			dbg "do: clearing image"
 			IFS=';' read -r x y w h
-			ImageLayer::remove "[identifier]=$n" >"$fifo"
+			x=$(getx "$x")
+			y=$(gety "$y")
+			imgid="img-$x-$y-$w-$h"
+			dbg "imgid: $imgid"
+			ImageLayer::remove "[identifier]=$imgid" >"$fifo"
 			dbg "done: clearing image"
 			;;
 		*) dbg "bad command: $cmd";;

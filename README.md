@@ -10,3 +10,7 @@ w3mimgdisplay in certain situations.)
 
 uberw3m tries to implement the w3mimgdisplay protocol as documented by
 this blog post: <https://blog.z3bra.org/2014/01/images-in-terminal.html>
+
+## Copyright
+
+Copyright © 2020 Ash Holland. Licensed under the EUPL (1.2 or later).
